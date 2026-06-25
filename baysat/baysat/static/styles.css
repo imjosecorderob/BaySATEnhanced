@@ -1,0 +1,12 @@
+/* Empieza invisible */
+#formularioProyecto {
+    opacity: 0;
+    transition: opacity 0.5s ease;
+    display: none; /* También oculto inicialmente */
+}
+
+/* Clase activa que muestra con efecto */
+#formularioProyecto.mostrar {
+    display: block;
+    opacity: 1;
+}

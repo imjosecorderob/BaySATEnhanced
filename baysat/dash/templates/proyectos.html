@@ -1,0 +1,73 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block  archivos_css %}
+    <link rel="stylesheet" href="{% static "styles.css" %}">
+{% endblock %}
+
+{% block content %}
+
+<!-- Tarjeta que inicialmente estará OCULTA -->
+<div class="card" id="formularioProyecto" style="display: none; margin: 20px;">
+    <h2 style="padding: 10px">Gestión de proyectos</h2>
+    <div class="card-body">
+        <form action="/proyectos/registrarProyecto/" method="POST">{% csrf_token %}
+            <div class="form-group py-2">
+                <input type="text" id="txtCodigo" name="txtCodigo" class="form-control" placeholder="Código" required>
+            </div>
+            <div class="form-group py-2">
+                <input type="text" id="txtProyecto" name="txtProyecto" class="form-control" placeholder="Proyecto" maxlength="50" required>
+            </div>
+            <div class="form-group py-2">
+                <input type="text" id="txtIntegrantes" name="txtIntegrantes" class="form-control" placeholder="Integrantes" min="1" maxlength="9" required>
+            </div>
+
+            <div class="form-group py-2">
+                <button type="submit" class="btn btn-success btn-block text-white">Guardar</button>
+                <button type="button" class="btn btn-secondary" onclick="cerrarFormulario()">Cerrar</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Aquí sigue tu tabla de proyectos -->
+<div class="card" style="margin: 100px; padding: 30px; align-items: center">
+    <div class="col-sm-12 col-md-6 col-lg-8 col-xl-8">
+        <h1>Listado de proyectos</h1>
+        <div class="table-responsive py-2">
+            <table class="table table-striped">
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>Id</th>
+                        <th>Proyecto</th>
+                        <th>Integrantes</th>
+                        <th colspan="2">Opciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for c in proyectos %}
+                    <tr>
+                        <td>{{forloop.counter}}</td>
+                        <td>{{c.id}}</td>
+                        <td>{{c.proyecto}}</td>
+                        <td>{{c.integrantes}}</td>
+                        <!-- Botón EDITAR que ahora llama función JS -->
+                        <td><button type="button" class="btn btn-info"  onclick="editarProyecto('{{c.id}}', '{{c.proyecto}}', '{{c.integrantes}}')">Editar</button></td>
+                        <td><a href="eliminarProyecto/{{c.id}}" class="btn btn-danger btnEliminacion" onclick="return confirmarEliminacion()">Eliminar</a></td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+
+            <div style="margin: 20px;">
+                <button type="button" class="btn btn-success" onclick="nuevoProyecto()">Nuevo Proyecto</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+<script src="{% static "script.js"%}"></script>
+
+{% endblock %}

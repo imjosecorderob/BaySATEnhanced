@@ -1,0 +1,540 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+    <section id="subida">
+
+
+        <form method="post" action="{% url 'subidaArchivos' %}" enctype="multipart/form-data">
+            {% csrf_token %}
+            <div class="card shadow mb-4">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">Carga de archivos</h6>
+                </div>
+                <div class="card-body">
+                    <!-- Archivo .uai -->
+                    <div class="input-group mb-3">
+                        <div class="input-group-prepend">
+                            <span class="input-group-text">.uai</span>
+                        </div>
+                        <div class="custom-file">
+                            <input type="file" name="archivo_uai" class="custom-file-input" id="archivoUAI" required>
+                            <label class="custom-file-label" for="archivoUAI">Seleccionar archivo .uai</label>
+                        </div>
+                    </div>
+
+                    <!-- Archivo .evid -->
+                    <div class="input-group mb-3">
+                        <div class="input-group-prepend">
+                            <span class="input-group-text">.evid</span>
+                        </div>
+                        <div class="custom-file">
+                            <input type="file" name="archivo_evid" class="custom-file-input" id="archivoEVID" required>
+                            <label class="custom-file-label" for="archivoEVID">Seleccionar archivo .evid</label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <button type="submit" class="btn btn-primary btn-icon-split">
+                <span class="icon text-white-50"><i class="fa fa-paper-plane" style="padding-top: 4px"
+                                                    aria-hidden="true"></i></span>
+                <span class="text">Procesar</span>
+            </button>
+
+            {% if ruta_uai and ruta_evid %}
+                <hr>
+                <div class="alert alert-success">
+                   <i class="fa fa-file" aria-hidden="true"></i>
+
+                     <strong> &nbsp; Archivos subidos exitosamente</strong>
+                    <hr>
+                        {{ ruta_uai }}<br>
+                        {{ ruta_evid }}
+                    </ul>
+                </div>
+            {% endif %}
+        </form>
+    </section>
+
+    <!-- Fase 1: Comprensión del negocio -->
+    {% if resumen_negocio %}
+        <div class="card shadow mb-4 mt-4 border-left-info">
+            <div class="card-header bg-info text-white">
+                <h6 class="m-0 font-weight-bold">Detalles del archivo cargado</h6>
+            </div>
+            <div class="card-body">
+                <!-- Resumen horizontal -->
+                <div class="row mb-3">
+                    <div class="col-md-2 mb-2">
+                        <div class="text-muted small font-weight-bold">Benchmark</div>
+                        <div class="">{{ resumen_negocio.benchmark }}</div>
+                    </div>
+                    <div class="col-md-2 mb-2">
+                        <div class="text-muted small font-weight-bold">Tipo de red</div>
+                        <div class="text-uppercase">{{ resumen_negocio.tipo_red }}</div>
+                    </div>
+                    <div class="col-md-2 mb-2">
+                        <div class="text-muted small font-weight-bold">Variables (nv)</div>
+                        <div class="">{{ resumen_negocio.nv }}</div>
+                    </div>
+                    <div class="col-md-2 mb-2">
+                        <div class="text-muted small font-weight-bold">Factores (ne)</div>
+                        <div class="">{{ resumen_negocio.ne }}</div>
+                    </div>
+                    <div class="col-md-2 mb-2">
+                        <div class="text-muted small font-weight-bold">Con evidencia (mcs)</div>
+                        <div class="">{{ resumen_negocio.mcs }}</div>
+                    </div>
+                </div>
+                {% if grafo_path %}
+                    <!-- Gráfico de red
+                    <div class="mt-2">
+                        <div class="text-muted small mb-1 font-weight-bold">Red bayesiana:</div>
+                        <iframe src="{% url 'ver_grafo' %}" width="100%" height="510" class="sin-borde"></iframe>
+                    </div> -->
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- CSS opcional si no está incluido aún -->
+        <style>
+            iframe.sin-borde {
+                border: none !important;
+                outline: none;
+                box-shadow: none;
+            }
+        </style>
+    {% endif %}
+
+    <!-- Fase 2: Preparación de los datos -->
+    {% if metricas_cnf %}
+        <div class="card shadow mb-4 mt-4 border-left-dark">
+            <div class="card-header bg-dark text-white">
+                <h6 class="m-0 font-weight-bold">Preparación de los datos</h6>
+            </div>
+            <div class="card-body">
+                <div class="row text-center">
+                    <div class="col-md-4 mb-2">
+                        <div class="text-muted small">Archivo CNF generado</div>
+                        <div class="font-weight-bold text-break">{{ resumen_negocio.benchmark|slice:":-4" }}.cnf</div>
+                    </div>
+                    <div class="col-md-4 mb-2">
+                        <div class="text-muted small">Cláusulas generadas</div>
+                        <div class="font-weight-bold">{{ metricas_cnf.operaciones_estimadas }}</div>
+                    </div>
+                    <div class="col-md-4 mb-2">
+                        <div class="text-muted small">Variables en CNF</div>
+                        <div class="font-weight-bold">{{ metricas_cnf.variables_inferidas }}</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    {% endif %}
+
+    <!-- Fase 3: Modelado -->
+    {% if resultados_mix %}
+        <div class="card shadow mb-4 border-left-primary">
+            <div class="card-header bg-primary text-white">
+                <h6 class="m-0 font-weight-bold">Fase 3 – Comparación de configuraciones MIX</h6>
+            </div>
+            <div class="card-body">
+                <table class="table table-bordered text-center">
+                    <thead class="thead-light">
+                    <tr>
+                        <th>Configuración</th>
+                        <th>Tiempo (s)</th>
+                        <th>Tablas resultantes</th>
+                        <th>¿Contradictoria?</th>
+                        <th>¿Trivial?</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    {% for res in resultados_mix %}
+                        <tr>
+                            <td>{{ res.configuracion }}</td>
+                            <td>{{ res.tiempo_segundos }}</td>
+                            <td>{{ res.num_tablas }}</td>
+                            <td>{{ res.es_contradictoria }}</td>
+                            <td>{{ res.es_trivial }}</td>
+                        </tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    {% endif %}
+
+    {% if metricas_inferencia %}
+        <section id="bayesiana">
+
+
+            {% if metricas_inferencia.error %}
+                <div class="alert alert-danger mt-4">
+                    <strong>Error al procesar la inferencia:</strong> {{ metricas_inferencia.error }}
+                </div>
+            {% else %}
+                <div class="card shadow mb-4 mt-4 border-left-primary">
+                    <div class="card-header bg-primary text-white">
+                        <h6 class="m-0 font-weight-bold">Inferencia bayesiana</h6>
+                    </div>
+                    <div class="card-body">
+                        <ul class="list-group list-group-flush">
+                            <li class="list-group-item">⏱ Tiempo de inferencia:
+                                <strong>{{ metricas_inferencia.tiempo_inferencia }} s</strong></li>
+                            <li class="list-group-item">🔁 Variables inferidas:
+                                <strong>{{ metricas_inferencia.variables_inferidas }}</strong></li>
+                            <li class="list-group-item">🧮 Operaciones estimadas:
+                                <strong>{{ metricas_inferencia.operaciones_estimadas }}</strong></li>
+                        </ul>
+                        <!--  <hr>
+                        {% for var, dist in metricas_inferencia.resultados.items %}
+                            <strong>{{ var }}:</strong>
+                            <ul>
+                                {% for val, prob in dist.items %}
+                                    <li>{{ val }} → {{ prob }}</li>
+                                {% endfor %}
+                            </ul>
+                        {% endfor %}-->
+                    </div>
+                </div>
+            {% endif %}
+        </section>
+    {% endif %}
+
+    {% if metricas_cnf %}
+        <section id="sat">
+
+
+            <div class="card shadow mb-4 mt-4 border-left-secondary">
+                <div class="card-header bg-secondary text-white">
+                    <h6 class="m-0 font-weight-bold">Lógica Booleana (desde CNF)</h6>
+                </div>
+                <div class="card-body">
+                    <ul class="list-group list-group-flush">
+                        <li class="list-group-item">⏱ Tiempo de inferencia:
+                            <strong>{{ metricas_cnf.tiempo_cnf }} s</strong></li>
+                        <li class="list-group-item">🔁 Variables inferidas:
+                            <strong>{{ metricas_cnf.variables_inferidas }}</strong></li>
+                        <li class="list-group-item">🧮 Operaciones estimadas:
+                            <strong>{{ metricas_cnf.operaciones_estimadas }}</strong></li>
+                    </ul>
+                    <!-- <hr>
+                    <strong>Fórmulas Booleanas:</strong>
+                    <ul>
+                        {% for formula in metricas_cnf.formulas_booleanas %}
+                            <li>{{ formula }}</li>
+                        {% endfor %}
+                    </ul>-->
+                </div>
+            </div>
+        </section>
+    {% endif %}
+
+
+    <!-- Fase 4: Evaluación -->
+
+
+    {% if metricas_comparadas %}
+        <div class="card shadow mb-4 border-left-danger">
+            <div class="card-header bg-danger text-white">
+                <h6 class="m-0 font-weight-bold">Evaluación y estadísticas</h6>
+            </div>
+            <div class="card-body">
+
+                {% if estadisticas_mix %}
+                    <h6 class="text-muted">Estadísticas de configuraciones MIX:</h6>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <strong>Tiempo (s):</strong>
+                            <ul>
+                                <li>Media: {{ estadisticas_mix.tiempo.media }}</li>
+                                <li>Desviación estándar: {{ estadisticas_mix.tiempo.desviacion }}</li>
+                                <li>Mínimo: {{ estadisticas_mix.tiempo.minimo }}</li>
+                                <li>Máximo: {{ estadisticas_mix.tiempo.maximo }}</li>
+                            </ul>
+                        </div>
+                        <div class="col-md-6">
+                            <strong>Tablas generadas:</strong>
+                            <ul>
+                                <li>Media: {{ estadisticas_mix.tablas.media }}</li>
+                                <li>Desviación estándar: {{ estadisticas_mix.tablas.desviacion }}</li>
+                                <li>Mínimo: {{ estadisticas_mix.tablas.minimo }}</li>
+                                <li>Máximo: {{ estadisticas_mix.tablas.maximo }}</li>
+                            </ul>
+                        </div>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    {% endif %}
+
+     {% if metricas_inferencia and metricas_cnf %}
+        <section id="mejoras">
+
+
+            <div class="row">
+                <div class="col-md-4 mb-4">
+                    <div class="card border-left-success shadow h-100 py-2">
+                        <div class="card-body">
+                            <div class="row no-gutters align-items-center">
+                                <div class="col mr-2">
+                                    <div class="text-xs font-weight-bold text-success text-uppercase mb-1">
+                                        Mejora en tiempo (SAT vs Bayes)
+                                    </div>
+                                    <div class="h5 mb-0 font-weight-bold text-gray-800">
+                                        {{ mejora_tiempo }}%
+                                    </div>
+
+                                </div>
+                                <div class="col-auto">
+                                    <i class="fas fa-tachometer-alt fa-2x text-gray-300"></i>
+                                </div>
+                            </div>
+                            <div id="grafico_tiempo"></div>
+                        </div>
+                    </div>
+
+
+                </div>
+
+                <div class="col-md-4 mb-4">
+                    <div class="card border-left-info shadow h-100 py-2">
+                        <div class="card-body">
+                            <div class="row no-gutters align-items-center">
+                                <div class="col mr-2">
+                                    <div class="text-xs font-weight-bold text-info text-uppercase mb-1">
+                                        Diferencia de costo estructural
+                                    </div>
+                                    <div class="h5 mb-0 font-weight-bold text-gray-800">
+                                        {{ diferencia_costo }}%
+                                    </div>
+                                </div>
+                                <div class="col-auto">
+                                    <i class="fas fa-cogs fa-2x text-gray-300"></i>
+                                </div>
+                            </div>
+                            <div id="grafico_operaciones"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-md-4 mb-4">
+                    <div class="card border-left-warning shadow h-100 py-2">
+                        <div class="card-body">
+                            <div class="row no-gutters align-items-center">
+                                <div class="col mr-2">
+                                    <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">
+                                        Diferencia en variables inferidas
+                                    </div>
+                                    <div class="h5 mb-0 font-weight-bold text-gray-800">
+                                        {{ diferencia_variables }}</div>
+                                </div>
+                                <div class="col-auto">
+                                    <i class="fas fa-project-diagram fa-2x text-gray-300"></i>
+                                </div>
+                            </div>
+                            <div id="grafico_variables"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+    {% endif %}
+
+    {% if grafico_q_labels and grafico_tiempos_mix %}
+        <div class="card shadow mb-4 border-left-secondary">
+            <div class="card-header bg-secondary text-white">
+                <h6 class="m-0 font-weight-bold">Gráfica de configuraciones MIX</h6>
+            </div>
+            <div class="card-body">
+                <div id="grafico_mix_tiempo" style="height: 300px;"></div>
+
+            </div>
+        </div>
+    {% endif %}
+
+
+
+    <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
+
+    <script>
+
+        {% if metricas_inferencia and metricas_cnf %}
+            document.addEventListener('DOMContentLoaded', function () {
+
+                const tiempoSAT = parseFloat("{{ metricas_cnf.tiempo_cnf|default:"0"|floatformat:"6" }}".replace(',', '.'));
+                const tiempoBayes = parseFloat("{{ metricas_inferencia.tiempo_inferencia|default:"0"|floatformat:"6" }}".replace(',', '.'));
+
+                const opsBayes = parseInt("{{ metricas_inferencia.operaciones_estimadas|default:0 }}");
+                const opsSAT = parseInt("{{ metricas_cnf.operaciones_estimadas|default:0 }}");
+                const varsBayes = parseInt("{{ metricas_inferencia.variables_inferidas|default:0 }}");
+                const varsSAT = parseInt("{{ metricas_cnf.variables_inferidas|default:0 }}");
+
+                console.log('BAYES:' + tiempoBayes);
+                console.log('SAT:' + tiempoSAT);
+                // Tiempo
+                new ApexCharts(document.querySelector("#grafico_tiempo"), {
+                    chart: {type: 'bar', height: 250},
+                    markers: {size: 5},
+                    title: {text: 'Tiempo promedio en función de Q', align: 'center'},
+                    series: [{
+                        name: 'Tiempo (s)',
+                        data: [tiempoBayes, tiempoSAT]
+                    }],
+                    xaxis: {categories: ['Bayesiana', 'SAT']},
+                    yaxis: {
+                        title: {text: 'Tiempo (s)'},
+                        min: 0,
+                        labels: {
+                            formatter: function (val) {
+                                return val.toExponential(2);
+                            }
+                        },
+                        title: {
+                            text: 'Segundos'
+                        }
+                    },
+                    colors: ['#1E90FF', '#FF7F50'],
+                    plotOptions: {
+                        bar: {
+                            distributed: true
+                        }
+                    }
+                }).render();
+
+                // Operaciones
+                new ApexCharts(document.querySelector("#grafico_operaciones"), {
+                    chart: {type: 'bar', height: 250},
+                    title: {text: ""},
+                    series: [{name: 'Operaciones', data: [opsBayes, opsSAT]}],
+                    xaxis: {categories: ['Bayesiana', 'SAT']},
+                    colors: ['#1E90FF', '#FF7F50'],
+                    plotOptions: {
+                        bar: {
+                            distributed: true
+                        }
+                    }
+                }).render();
+
+                // Variables
+                new ApexCharts(document.querySelector("#grafico_variables"), {
+                    chart: {type: 'bar', height: 250},
+                    title: {text: ""},
+                    series: [{name: 'Variables', data: [varsBayes, varsSAT]}],
+                    xaxis: {categories: ['Bayesiana', 'SAT']},
+                    colors: ['#1E90FF', '#FF7F50'],
+                    plotOptions: {
+                        bar: {
+                            distributed: true
+                        }
+                    }
+                }).render();
+            });
+
+
+
+        {% endif %}
+
+
+
+
+
+
+
+
+
+        // Etiqueta nombre de archivos seleccionados
+        document.querySelectorAll('.custom-file-input').forEach((input) => {
+            input.addEventListener('change', function (e) {
+                const fileName = e.target.files[0]?.name;
+                if (fileName) {
+                    const label = e.target.nextElementSibling;
+                    label.innerText = fileName;
+                }
+            });
+        });
+
+        {% if grafico_q_labels and grafico_tiempos_mix %}
+            document.addEventListener('DOMContentLoaded', function () {
+                const qLabels = {{ grafico_q_labels|safe }};
+                const tiemposMix = {{ grafico_tiempos_mix|safe }};
+                const tablasMix = {{ grafico_tablas_mix|safe }};
+
+                new ApexCharts(document.querySelector("#grafico_mix_tiempo"), {
+                    chart: {type: 'line', height: 300},
+                    series: [{name: "Tiempo (s)", data: tiemposMix}],
+                    xaxis: {
+                        categories: qLabels,
+                        title: {text: "Valor de Q en mix(Q=...)"}
+                    },
+                    yaxis: {
+                        title: {text: "Tiempo de ejecución (s)"}
+                    },
+                    colors: ['#007bff']
+                }).render();
+
+                new ApexCharts(document.querySelector("#grafico_mix_tablas"), {
+                    chart: {type: 'line', height: 300},
+                    series: [{name: "Tablas resultantes", data: tablasMix}],
+                    xaxis: {
+                        categories: qLabels,
+                        title: {text: "Valor de Q en mix(Q=...)"}
+                    },
+                    yaxis: {
+                        title: {text: "Número de tablas"}
+                    },
+                    colors: ['#28a745']
+                }).render();
+            });
+        {% endif %}
+
+        {% if grafico_q_labels and grafico_tiempos_mix %}
+            document.addEventListener('DOMContentLoaded', function () {
+                const qLabels = {{ grafico_q_labels|safe }};
+                const tiemposMix = {{ grafico_tiempos_mix|safe }};
+
+                // Para boxplot, generamos objetos con x:Q, y:[tiempo]
+                const boxplotData = qLabels.map((q, i) => {
+                    return {
+                        x: "Q=" + q,
+                        y: [tiemposMix[i], tiemposMix[i], tiemposMix[i], tiemposMix[i], tiemposMix[i]]  // mismo valor, simulando box único
+                    }
+                });
+
+                new ApexCharts(document.querySelector("#boxplot_mix_tiempo"), {
+                    chart: {
+                        type: 'boxPlot',
+                        height: 350
+                    },
+                    series: [{
+                        name: 'Tiempo (s)',
+                        data: boxplotData
+                    }],
+                    plotOptions: {
+                        boxPlot: {
+                            colors: {
+                                upper: '#FFB703',
+                                lower: '#FB8500'
+                            }
+                        }
+                    },
+                    xaxis: {
+                        type: 'category',
+                        title: {
+                            text: "Configuración Q"
+                        }
+                    },
+                    yaxis: {
+                        title: {
+                            text: "Tiempo (s)"
+                        }
+                    }
+                }).render();
+            });
+        {% endif %}
+
+
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+{% endblock %}
